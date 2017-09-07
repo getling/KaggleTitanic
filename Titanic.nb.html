@@ -9,7 +9,9 @@
 <meta name="generator" content="pandoc" />
 
 
+<meta name="author" content="Greg Etling" />
 
+<meta name="date" content="2017-09-06" />
 
 <title>Titanic Classification data analysis</title>
 
@@ -167,15 +169,48 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Titanic Classification data analysis</h1>
+<h4 class="author"><em>Greg Etling</em></h4>
+<h4 class="date"><em>09/06/2017</em></h4>
 
 </div>
 
 
 <!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-text-begin -->
 <div id="load-data" class="section level1">
 <h1>Load data</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudGVzdGRhdGEgPC0gcmVhZF9jc3YoXCJkYXRhL3Rlc3QuY3N2XCIsXG4gICAgICAgICAgICAgICAgICAgICBjb2xfdHlwZXMgPSBjb2xzKFxuICAgICAgICAgICAgICAgICAgICAgICBQYXNzZW5nZXJJZCA9IGNvbF9pbnRlZ2VyKCksXG4gICAgICAgICAgICAgICAgICAgICAgIFBjbGFzcyA9IGNvbF9pbnRlZ2VyKCksXG4gICAgICAgICAgICAgICAgICAgICAgIE5hbWUgPSBjb2xfY2hhcmFjdGVyKCksXG4gICAgICAgICAgICAgICAgICAgICAgIFNleCA9IGNvbF9jaGFyYWN0ZXIoKSxcbiAgICAgICAgICAgICAgICAgICAgICAgQWdlID0gY29sX2RvdWJsZSgpLFxuICAgICAgICAgICAgICAgICAgICAgICBTaWJTcCA9IGNvbF9pbnRlZ2VyKCksXG4gICAgICAgICAgICAgICAgICAgICAgIFBhcmNoID0gY29sX2ludGVnZXIoKSxcbiAgICAgICAgICAgICAgICAgICAgICAgVGlja2V0ID0gY29sX2NoYXJhY3RlcigpLFxuICAgICAgICAgICAgICAgICAgICAgICBGYXJlID0gY29sX2RvdWJsZSgpLFxuICAgICAgICAgICAgICAgICAgICAgICBDYWJpbiA9IGNvbF9jaGFyYWN0ZXIoKSxcbiAgICAgICAgICAgICAgICAgICAgICAgRW1iYXJrZWQgPSBjb2xfY2hhcmFjdGVyKCkpKVxudHJhaW5kYXRhIDwtIHJlYWRfY3N2KFwiZGF0YS90cmFpbi5jc3ZcIixcbiAgICAgICAgICAgICAgICAgICAgIGNvbF90eXBlcyA9IGNvbHMoXG4gICAgICAgICAgICAgICAgICAgICAgIFBhc3NlbmdlcklkID0gY29sX2ludGVnZXIoKSxcbiAgICAgICAgICAgICAgICAgICAgICAgU3Vydml2ZWQgPSBjb2xfaW50ZWdlcigpLFxuICAgICAgICAgICAgICAgICAgICAgICBQY2xhc3MgPSBjb2xfaW50ZWdlcigpLFxuICAgICAgICAgICAgICAgICAgICAgICBOYW1lID0gY29sX2NoYXJhY3RlcigpLFxuICAgICAgICAgICAgICAgICAgICAgICBTZXggPSBjb2xfY2hhcmFjdGVyKCksXG4gICAgICAgICAgICAgICAgICAgICAgIEFnZSA9IGNvbF9kb3VibGUoKSxcbiAgICAgICAgICAgICAgICAgICAgICAgU2liU3AgPSBjb2xfaW50ZWdlcigpLFxuICAgICAgICAgICAgICAgICAgICAgICBQYXJjaCA9IGNvbF9pbnRlZ2VyKCksXG4gICAgICAgICAgICAgICAgICAgICAgIFRpY2tldCA9IGNvbF9jaGFyYWN0ZXIoKSxcbiAgICAgICAgICAgICAgICAgICAgICAgRmFyZSA9IGNvbF9kb3VibGUoKSxcbiAgICAgICAgICAgICAgICAgICAgICAgQ2FiaW4gPSBjb2xfY2hhcmFjdGVyKCksXG4gICAgICAgICAgICAgICAgICAgICAgIEVtYmFya2VkID0gY29sX2NoYXJhY3RlcigpKSlcbmBgYCJ9 -->
+<pre class="r"><code>testdata &lt;- read_csv(&quot;data/test.csv&quot;,
+                     col_types = cols(
+                       PassengerId = col_integer(),
+                       Pclass = col_integer(),
+                       Name = col_character(),
+                       Sex = col_character(),
+                       Age = col_double(),
+                       SibSp = col_integer(),
+                       Parch = col_integer(),
+                       Ticket = col_character(),
+                       Fare = col_double(),
+                       Cabin = col_character(),
+                       Embarked = col_character()))
+traindata &lt;- read_csv(&quot;data/train.csv&quot;,
+                     col_types = cols(
+                       PassengerId = col_integer(),
+                       Survived = col_integer(),
+                       Pclass = col_integer(),
+                       Name = col_character(),
+                       Sex = col_character(),
+                       Age = col_double(),
+                       SibSp = col_integer(),
+                       Parch = col_integer(),
+                       Ticket = col_character(),
+                       Fare = col_double(),
+                       Cabin = col_character(),
+                       Embarked = col_character()))</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <hr />
@@ -194,7 +229,7 @@ $(document).ready(function () {
 <!-- rnb-text-end -->
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiVGl0YW5pYyBDbGFzc2lmaWNhdGlvbiBkYXRhIGFuYWx5c2lzIgpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sKLS0tCiMgTG9hZCBkYXRhCmBgYHtyfQoKYGBgCgoKLS0tCk9yaWdpbmFsIG5vdGVzOgoKVGhpcyBpcyBhbiBbUiBNYXJrZG93bl0oaHR0cDovL3JtYXJrZG93bi5yc3R1ZGlvLmNvbSkgTm90ZWJvb2suIFdoZW4geW91IGV4ZWN1dGUgY29kZSB3aXRoaW4gdGhlIG5vdGVib29rLCB0aGUgcmVzdWx0cyBhcHBlYXIgYmVuZWF0aCB0aGUgY29kZS4gCgpUcnkgZXhlY3V0aW5nIHRoaXMgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpSdW4qIGJ1dHRvbiB3aXRoaW4gdGhlIGNodW5rIG9yIGJ5IHBsYWNpbmcgeW91ciBjdXJzb3IgaW5zaWRlIGl0IGFuZCBwcmVzc2luZyAqQ21kK1NoaWZ0K0VudGVyKi4gCgpgYGB7cn0KcGxvdChjYXJzKQpgYGAKCkFkZCBhIG5ldyBjaHVuayBieSBjbGlja2luZyB0aGUgKkluc2VydCBDaHVuayogYnV0dG9uIG9uIHRoZSB0b29sYmFyIG9yIGJ5IHByZXNzaW5nICpDbWQrT3B0aW9uK0kqLgoKV2hlbiB5b3Ugc2F2ZSB0aGUgbm90ZWJvb2ssIGFuIEhUTUwgZmlsZSBjb250YWluaW5nIHRoZSBjb2RlIGFuZCBvdXRwdXQgd2lsbCBiZSBzYXZlZCBhbG9uZ3NpZGUgaXQgKGNsaWNrIHRoZSAqUHJldmlldyogYnV0dG9uIG9yIHByZXNzICpDbWQrU2hpZnQrSyogdG8gcHJldmlldyB0aGUgSFRNTCBmaWxlKS4K</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiVGl0YW5pYyBDbGFzc2lmaWNhdGlvbiBkYXRhIGFuYWx5c2lzIgphdXRob3I6ICJHcmVnIEV0bGluZyIKZGF0ZTogIjA5LzA2LzIwMTciCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KCmBgYHtyIHNldHVwLCBpbmNsdWRlID0gRkFMU0V9CiMgS25pdHIgZGVmYXVsdHMKa25pdHI6Om9wdHNfY2h1bmskc2V0KGVjaG8gPSBGQUxTRSwKICAgICAgICAgICAgICAgICAgICAgIGZpZy5hbGlnbiA9ICdjZW50ZXInLCAKICAgICAgICAgICAgICAgICAgICAgIGF1dG9kZXAgPSBUUlVFLAogICAgICAgICAgICAgICAgICAgICAgY2FjaGUgPSBUUlVFKQoKIyBJbnN0YWxsIFBhY2thZ2VzCnJlcXVpcmUoZ2diaXBsb3QpIHx8IHtpbnN0YWxsX2dpdGh1YigidnF2L2dnYmlwbG90Iik7IHJlcXVpcmUoZ2diaXBsb3QpfQpyZXF1aXJlKHRpZHl2ZXJzZSkgfHwge2luc3RhbGwucGFja2FnZXMoInRpZHl2ZXJzZSIpOyByZXF1aXJlKHRpZHl2ZXJzZSl9CnJlcXVpcmUoZ2d0aGVtZXMpIHx8IHtpbnN0YWxsLnBhY2thZ2VzKCJnZ3RoZW1lcyIpOyByZXF1aXJlKGdndGhlbWVzKX0KcmVxdWlyZShSQ29sb3JCcmV3ZXIpIHx8IHtpbnN0YWxsLnBhY2thZ2VzKCJSQ29sb3JCcmV3ZXIiKTsgcmVxdWlyZShSQ29sb3JCcmV3ZXIpfQoKIyBTY2llbnRpZmljIG5vdGF0aW9uIGRlZmF1bHRzCm9wdGlvbnMoc2NpcGVuPTEsZGlnaXRzPTIpCgojIFNldCBiYXNlIHRoZW1lCnRoZW1lX3NldCh0aGVtZV9taW5pbWFsKCkpCmBgYAojIExvYWQgZGF0YQpgYGB7ciBkYXRhX2xvYWR9CnRlc3RkYXRhIDwtIHJlYWRfY3N2KCJkYXRhL3Rlc3QuY3N2IiwKICAgICAgICAgICAgICAgICAgICAgY29sX3R5cGVzID0gY29scygKICAgICAgICAgICAgICAgICAgICAgICBQYXNzZW5nZXJJZCA9IGNvbF9pbnRlZ2VyKCksCiAgICAgICAgICAgICAgICAgICAgICAgUGNsYXNzID0gY29sX2ludGVnZXIoKSwKICAgICAgICAgICAgICAgICAgICAgICBOYW1lID0gY29sX2NoYXJhY3RlcigpLAogICAgICAgICAgICAgICAgICAgICAgIFNleCA9IGNvbF9jaGFyYWN0ZXIoKSwKICAgICAgICAgICAgICAgICAgICAgICBBZ2UgPSBjb2xfZG91YmxlKCksCiAgICAgICAgICAgICAgICAgICAgICAgU2liU3AgPSBjb2xfaW50ZWdlcigpLAogICAgICAgICAgICAgICAgICAgICAgIFBhcmNoID0gY29sX2ludGVnZXIoKSwKICAgICAgICAgICAgICAgICAgICAgICBUaWNrZXQgPSBjb2xfY2hhcmFjdGVyKCksCiAgICAgICAgICAgICAgICAgICAgICAgRmFyZSA9IGNvbF9kb3VibGUoKSwKICAgICAgICAgICAgICAgICAgICAgICBDYWJpbiA9IGNvbF9jaGFyYWN0ZXIoKSwKICAgICAgICAgICAgICAgICAgICAgICBFbWJhcmtlZCA9IGNvbF9jaGFyYWN0ZXIoKSkpCnRyYWluZGF0YSA8LSByZWFkX2NzdigiZGF0YS90cmFpbi5jc3YiLAogICAgICAgICAgICAgICAgICAgICBjb2xfdHlwZXMgPSBjb2xzKAogICAgICAgICAgICAgICAgICAgICAgIFBhc3NlbmdlcklkID0gY29sX2ludGVnZXIoKSwKICAgICAgICAgICAgICAgICAgICAgICBTdXJ2aXZlZCA9IGNvbF9pbnRlZ2VyKCksCiAgICAgICAgICAgICAgICAgICAgICAgUGNsYXNzID0gY29sX2ludGVnZXIoKSwKICAgICAgICAgICAgICAgICAgICAgICBOYW1lID0gY29sX2NoYXJhY3RlcigpLAogICAgICAgICAgICAgICAgICAgICAgIFNleCA9IGNvbF9jaGFyYWN0ZXIoKSwKICAgICAgICAgICAgICAgICAgICAgICBBZ2UgPSBjb2xfZG91YmxlKCksCiAgICAgICAgICAgICAgICAgICAgICAgU2liU3AgPSBjb2xfaW50ZWdlcigpLAogICAgICAgICAgICAgICAgICAgICAgIFBhcmNoID0gY29sX2ludGVnZXIoKSwKICAgICAgICAgICAgICAgICAgICAgICBUaWNrZXQgPSBjb2xfY2hhcmFjdGVyKCksCiAgICAgICAgICAgICAgICAgICAgICAgRmFyZSA9IGNvbF9kb3VibGUoKSwKICAgICAgICAgICAgICAgICAgICAgICBDYWJpbiA9IGNvbF9jaGFyYWN0ZXIoKSwKICAgICAgICAgICAgICAgICAgICAgICBFbWJhcmtlZCA9IGNvbF9jaGFyYWN0ZXIoKSkpCmBgYAoKCi0tLQpPcmlnaW5hbCBub3RlczoKClRoaXMgaXMgYW4gW1IgTWFya2Rvd25dKGh0dHA6Ly9ybWFya2Rvd24ucnN0dWRpby5jb20pIE5vdGVib29rLiBXaGVuIHlvdSBleGVjdXRlIGNvZGUgd2l0aGluIHRoZSBub3RlYm9vaywgdGhlIHJlc3VsdHMgYXBwZWFyIGJlbmVhdGggdGhlIGNvZGUuIAoKVHJ5IGV4ZWN1dGluZyB0aGlzIGNodW5rIGJ5IGNsaWNraW5nIHRoZSAqUnVuKiBidXR0b24gd2l0aGluIHRoZSBjaHVuayBvciBieSBwbGFjaW5nIHlvdXIgY3Vyc29yIGluc2lkZSBpdCBhbmQgcHJlc3NpbmcgKkNtZCtTaGlmdCtFbnRlciouIAoKYGBge3J9CnBsb3QoY2FycykKYGBgCgpBZGQgYSBuZXcgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpJbnNlcnQgQ2h1bmsqIGJ1dHRvbiBvbiB0aGUgdG9vbGJhciBvciBieSBwcmVzc2luZyAqQ21kK09wdGlvbitJKi4KCldoZW4geW91IHNhdmUgdGhlIG5vdGVib29rLCBhbiBIVE1MIGZpbGUgY29udGFpbmluZyB0aGUgY29kZSBhbmQgb3V0cHV0IHdpbGwgYmUgc2F2ZWQgYWxvbmdzaWRlIGl0IChjbGljayB0aGUgKlByZXZpZXcqIGJ1dHRvbiBvciBwcmVzcyAqQ21kK1NoaWZ0K0sqIHRvIHByZXZpZXcgdGhlIEhUTUwgZmlsZSkuCg==</div>
 
 
 

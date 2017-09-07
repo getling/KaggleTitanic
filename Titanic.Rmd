@@ -1,10 +1,58 @@
 ---
 title: "Titanic Classification data analysis"
+author: "Greg Etling"
+date: "09/06/2017"
 output: html_notebook
 ---
-# Load data
-```{r}
 
+```{r setup, include = FALSE}
+# Knitr defaults
+knitr::opts_chunk$set(echo = FALSE,
+                      fig.align = 'center', 
+                      autodep = TRUE,
+                      cache = TRUE)
+
+# Install Packages
+require(ggbiplot) || {install_github("vqv/ggbiplot"); require(ggbiplot)}
+require(tidyverse) || {install.packages("tidyverse"); require(tidyverse)}
+require(ggthemes) || {install.packages("ggthemes"); require(ggthemes)}
+require(RColorBrewer) || {install.packages("RColorBrewer"); require(RColorBrewer)}
+
+# Scientific notation defaults
+options(scipen=1,digits=2)
+
+# Set base theme
+theme_set(theme_minimal())
+```
+# Load data
+```{r data_load}
+testdata <- read_csv("data/test.csv",
+                     col_types = cols(
+                       PassengerId = col_integer(),
+                       Pclass = col_integer(),
+                       Name = col_character(),
+                       Sex = col_character(),
+                       Age = col_double(),
+                       SibSp = col_integer(),
+                       Parch = col_integer(),
+                       Ticket = col_character(),
+                       Fare = col_double(),
+                       Cabin = col_character(),
+                       Embarked = col_character()))
+traindata <- read_csv("data/train.csv",
+                     col_types = cols(
+                       PassengerId = col_integer(),
+                       Survived = col_integer(),
+                       Pclass = col_integer(),
+                       Name = col_character(),
+                       Sex = col_character(),
+                       Age = col_double(),
+                       SibSp = col_integer(),
+                       Parch = col_integer(),
+                       Ticket = col_character(),
+                       Fare = col_double(),
+                       Cabin = col_character(),
+                       Embarked = col_character()))
 ```
 
 
