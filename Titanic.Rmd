@@ -17,6 +17,7 @@ require(ggbiplot) || {install_github("vqv/ggbiplot"); require(ggbiplot)}
 require(tidyverse) || {install.packages("tidyverse"); require(tidyverse)}
 require(ggthemes) || {install.packages("ggthemes"); require(ggthemes)}
 require(RColorBrewer) || {install.packages("RColorBrewer"); require(RColorBrewer)}
+require(gmodels) || {install.packages("gmodels"); require(gmodels)}
 
 # Scientific notation defaults
 options(scipen=1,digits=2)
@@ -29,32 +30,86 @@ theme_set(theme_minimal())
 testdata <- read_csv("data/test.csv",
                      col_types = cols(
                        PassengerId = col_integer(),
-                       Pclass = col_integer(),
+                       Pclass = col_factor(levels = NULL),
                        Name = col_character(),
-                       Sex = col_character(),
+                       Sex = col_factor(levels = NULL),
                        Age = col_double(),
                        SibSp = col_integer(),
                        Parch = col_integer(),
                        Ticket = col_character(),
                        Fare = col_double(),
                        Cabin = col_character(),
-                       Embarked = col_character()))
+                       Embarked = col_factor(levels = NULL)))
 traindata <- read_csv("data/train.csv",
                      col_types = cols(
                        PassengerId = col_integer(),
-                       Survived = col_integer(),
-                       Pclass = col_integer(),
+                       Survived = col_factor(levels = NULL),
+                       Pclass = col_factor(levels = NULL),
                        Name = col_character(),
-                       Sex = col_character(),
+                       Sex = col_factor(levels = NULL),
                        Age = col_double(),
                        SibSp = col_integer(),
                        Parch = col_integer(),
                        Ticket = col_character(),
                        Fare = col_double(),
                        Cabin = col_character(),
-                       Embarked = col_character()))
+                       Embarked = col_factor(levels = NULL)))
+
+manifest <- traindata %>%
+  bind_rows(testdata)
 ```
 
+# Univariate
+```{r univariate}
+summary(manifest)
+require(DescTools) || {install.packages("DescTools"); require(DescTools)}
+Desc(manifest)
+```
+# Bivariate Analysis
+```{r bivariate}
+CrossTable(manifest$Survived, manifest$Sex)
+chisq.test(xtabs(~Survived+Sex, data=manifest))
+
+CrossTable(manifest$Survived, manifest$Pclass)
+chisq.test(xtabs(~Survived+Pclass, data=manifest))
+
+CrossTable(manifest$Survived, manifest$Embarked)
+chisq.test(xtabs(~Survived+Embarked, data=manifest))
+```
+
+```{r clean}
+
+```
+
+```{r resplit}
+
+```
+
+```{r models}
+# Start with logistic regression on Sex and Pclass (Embarked lowers AIC)
+logit <- glm ( Survived ~ Sex +
+                 Pclass,
+               data = traindata, family=binomial(link='logit'))
+summary(logit)
+anova(logit, test="Chisq")
+```
+
+```{r export_results}
+# Which model wins?
+winner <- logit
+
+# Predict using the test set
+prediction <- predict(winner, 
+                      testdata,
+                      type = 'response')
+fitted.results <- ifelse(fitted.results > 0.5,1,0)
+
+# Save the solution to a dataframe with two columns: PassengerId and Survived (prediction)
+solution <- data.frame(PassengerID = testdata$PassengerId, Survived = ifelse(prediction > 0.5,1,0))
+
+# Write the solution to file
+write.csv(solution, file = 'data/ge_solution.csv', row.names = F)
+```
 
 ---
 Original notes:
