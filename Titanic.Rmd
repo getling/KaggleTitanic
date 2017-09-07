@@ -86,34 +86,48 @@ chisq.test(xtabs(~Survived+Embarked, data=manifest))
 ```
 
 ```{r models}
+set.seed(100)
 # Start with logistic regression on Sex and Pclass (Embarked lowers AIC)
 # AIC: 834.9
-logit <- glm ( Survived ~ Sex +
+Logit <- glm ( Survived ~ Sex +
                  Pclass,
                data = traindata, family=binomial(link='logit'))
-summary(logit)
-anova(logit, test="Chisq")
 
+# Decision Tree
+require(partykit) || {install.packages("partykit"); require(partykit)}
 
+DecisionTree <- 
+  traindata %>% 
+  #select(-PassengerId, ...) %>% 
+  select(Survived, Sex, Pclass) %>%
+  ctree(Survived ~ ., .)
 ```
 
 ```{r diags}
 
 ```
 
+```{r compare}
+summary(Logit)
+anova(Logit, test="Chisq")
+
+print(DecisionTree)
+```
+
 
 ```{r export_results}
 # Which model wins?
-winner <- logit
+winner <- Logit
+#winner <- DecisionTree
 
 # Predict using the test set
 prediction <- predict(winner, 
                       testdata,
                       type = 'response')
-fitted.results <- ifelse(fitted.results > 0.5,1,0)
 
 # Save the solution to a dataframe with two columns: PassengerId and Survived (prediction)
 solution <- data.frame(PassengerID = testdata$PassengerId, Survived = ifelse(prediction > 0.5,1,0))
+#solution <- data.frame(PassengerID = testdata$PassengerId, Survived = prediction)
 
 # Write the solution to file
 write.csv(solution, file = 'data/ge_solution.csv', row.names = F)
