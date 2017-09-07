@@ -87,12 +87,20 @@ chisq.test(xtabs(~Survived+Embarked, data=manifest))
 
 ```{r models}
 # Start with logistic regression on Sex and Pclass (Embarked lowers AIC)
+# AIC: 834.9
 logit <- glm ( Survived ~ Sex +
                  Pclass,
                data = traindata, family=binomial(link='logit'))
 summary(logit)
 anova(logit, test="Chisq")
+
+
 ```
+
+```{r diags}
+
+```
+
 
 ```{r export_results}
 # Which model wins?
