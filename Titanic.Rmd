@@ -89,6 +89,7 @@ chisq.test(xtabs(~Survived+Embarked, data=manifest))
 set.seed(100)
 
 formula1 <- as.formula("Survived ~ Sex + Pclass")
+
 # Start with logistic regression on Sex and Pclass (Embarked lowers AIC)
 # AIC: 834.9
 Logit <- glm ( formula1,
@@ -128,6 +129,29 @@ BootstrapForest <-
 pred_BootstrapForest <- predict(BootstrapForest,
                                 testdata,
                                 type="response")
+
+# Boosted Trees
+require(gbm) || {install.packages("gbm"); require(gbm)}
+source("/Users/getling/Documents/Repositories/GlobalFiles/brt.functions.R")
+set.seed(100)
+
+# Currently bombing out
+# BoostedTree <- 
+#   traindata %>% 
+#   #select(-PassengerId, ...) %>% 
+#   select(Survived, Sex, Pclass) %>%
+#   gbm(formula1,
+#       data= . , 
+#       #distribution="huberized",
+#       n.trees=100, 
+#       shrinkage=0.1,
+#       n.minobsinnode = 20,
+#       #cv.folds=3, 
+#       n.cores = 2)
+
+pred_BoostedTree <- predict(BoostedTree,
+                            testdata,
+                            n.tree=800)
 ```
 
 ```{r diags}
@@ -145,16 +169,19 @@ importance(BootstrapForest) %>%
   rownames_to_column( var = "Variable") %>% 
   arrange(desc(MeanDecreaseGini))
 varImpPlot(BootstrapForest,type=2)
+
+summary(BoostedTree)
 ```
 
 
 ```{r export_results}
 # Which model wins?
-#pred_winner <- pred_Logit
-pred_winner <- pred_BootstrapForest
+pred_winner <- pred_Logit
+pred_winner <- pred_BoostedTree
+
 # Save the solution to a dataframe with two columns: PassengerId and Survived (prediction)
-#solution <- data.frame(PassengerID = testdata$PassengerId, Survived = ifelse(pred_winner > 0.5,1,0))
-solution <- data.frame(PassengerID = testdata$PassengerId, Survived = pred_Logit)
+solution <- data.frame(PassengerID = testdata$PassengerId, Survived = ifelse(pred_winner > 0.5,1,0))
+#solution <- data.frame(PassengerID = testdata$PassengerId, Survived = pred_winner)
 
 # Write the solution to file
 write.csv(solution, file = 'data/ge_solution.csv', row.names = F)
