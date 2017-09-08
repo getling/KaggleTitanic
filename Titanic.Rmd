@@ -87,11 +87,17 @@ chisq.test(xtabs(~Survived+Embarked, data=manifest))
 
 ```{r models}
 set.seed(100)
+
+formula1 <- as.formula("Survived ~ Sex + Pclass")
 # Start with logistic regression on Sex and Pclass (Embarked lowers AIC)
 # AIC: 834.9
-Logit <- glm ( Survived ~ Sex +
-                 Pclass,
-               data = traindata, family=binomial(link='logit'))
+Logit <- glm ( formula1,
+               data = traindata, 
+               family=binomial(link='logit'))
+
+pred_Logit <- predict(Logit, 
+                      testdata,
+                      type = 'response')
 
 # Decision Tree
 require(partykit) || {install.packages("partykit"); require(partykit)}
@@ -100,7 +106,28 @@ DecisionTree <-
   traindata %>% 
   #select(-PassengerId, ...) %>% 
   select(Survived, Sex, Pclass) %>%
-  ctree(Survived ~ ., .)
+  ctree(formula1, .)
+
+pred_DecisionTree <- predict(DecisionTree, 
+                      testdata,
+                      type = 'response')
+
+# Bootstrap Forest
+detach("package:partykit", unload=TRUE)
+require(randomForest) || {install.packages("randomForest"); require(randomForest)}
+
+BootstrapForest <- 
+  traindata %>% 
+  #select(-PassengerId, ...) %>% 
+  select(Survived, Sex, Pclass) %>%
+  randomForest(formula1,
+               data = .,
+               ntree=100,
+               keep.forest=TRUE)
+
+pred_BootstrapForest <- predict(BootstrapForest,
+                                testdata,
+                                type="response")
 ```
 
 ```{r diags}
@@ -112,22 +139,22 @@ summary(Logit)
 anova(Logit, test="Chisq")
 
 print(DecisionTree)
+
+importance(BootstrapForest) %>% 
+  data.frame() %>% 
+  rownames_to_column( var = "Variable") %>% 
+  arrange(desc(MeanDecreaseGini))
+varImpPlot(BootstrapForest,type=2)
 ```
 
 
 ```{r export_results}
 # Which model wins?
-winner <- Logit
-#winner <- DecisionTree
-
-# Predict using the test set
-prediction <- predict(winner, 
-                      testdata,
-                      type = 'response')
-
+#pred_winner <- pred_Logit
+pred_winner <- pred_BootstrapForest
 # Save the solution to a dataframe with two columns: PassengerId and Survived (prediction)
-solution <- data.frame(PassengerID = testdata$PassengerId, Survived = ifelse(prediction > 0.5,1,0))
-#solution <- data.frame(PassengerID = testdata$PassengerId, Survived = prediction)
+#solution <- data.frame(PassengerID = testdata$PassengerId, Survived = ifelse(pred_winner > 0.5,1,0))
+solution <- data.frame(PassengerID = testdata$PassengerId, Survived = pred_Logit)
 
 # Write the solution to file
 write.csv(solution, file = 'data/ge_solution.csv', row.names = F)
@@ -139,10 +166,6 @@ Original notes:
 This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
 
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
-
-```{r}
-plot(cars)
-```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
 
