@@ -18,6 +18,7 @@ require(tidyverse) || {install.packages("tidyverse"); require(tidyverse)}
 require(ggthemes) || {install.packages("ggthemes"); require(ggthemes)}
 require(RColorBrewer) || {install.packages("RColorBrewer"); require(RColorBrewer)}
 require(gmodels) || {install.packages("gmodels"); require(gmodels)}
+require(mice) || {install.packages("mice"); require(mice)}
 
 # Scientific notation defaults
 options(scipen=1,digits=2)
@@ -77,12 +78,57 @@ CrossTable(manifest$Survived, manifest$Embarked)
 chisq.test(xtabs(~Survived+Embarked, data=manifest))
 ```
 
-```{r clean}
+```{r drop}
+# Look for too many missing items (to drop)
+require(VIMGUI) || {install.packages("VIMGUI"); require(VIMGUI)}
+aggr_plot <- aggr(manifest, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(data), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+detach("package:VIMGUI", unload=TRUE)
+
+# Drop Cabin
+manifest <- manifest %>%
+  select(-Cabin)
+
+# For now, drop Age (20% missing)
+manifest <- manifest %>%
+  select(-Age)
+```
+
+```{r impute}
+# Impute missing data
+# First, initialize for ease of modification
+init <- mice(manifest, 
+             maxit = 0, 
+             seed = 100, 
+             pri = FALSE)
+# Next remove Survived from both imputation (meth) and use as predictor (pred)
+pred <- init$pred
+pred[, "Survived"] <- 0
+meth <- init$meth
+meth["Survived"] <- ""
+
+# Re-run imputation, for real this time
+imp <- mice(manifest, 
+            meth = meth, 
+            pred = pred, 
+            m = 5,
+            maxit = 50,
+            seed = 100,
+            pri = FALSE)
+
+# SHORTCUT since we have few data points
+# Normally we'd use imputations to pool results for more robustness
+# Write the first imputation back to the data frame
+manifest <- complete(imp, 1)
 
 ```
 
-```{r resplit}
 
+```{r resplit}
+traindata <- manifest %>% 
+  filter(PassengerId < 892)
+
+testdata <- manifest %>% 
+  filter(PassengerId > 891)
 ```
 
 ```{r models}
