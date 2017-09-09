@@ -115,8 +115,9 @@ imp <- mice(manifest,
 # SHORTCUT since we have few data points
 # Normally we'd use imputations to pool results for more robustness
 # Write the first imputation back to the data frame
-manifest <- complete(imp, 1)
-
+mice_manifest <- complete(imp, 1)
+manifest$Fare <- mice_manifest$Fare
+manifest$Embarked <- mice_manifest$Embarked
 ```
 
 ```{r resplit}
@@ -130,10 +131,9 @@ testdata <- manifest %>%
 ```{r models}
 set.seed(100)
 
-formula1 <- as.formula("Survived ~ . -PassengerId")
+# Currently using all variables (not checked against importance yet)
+formula1 <- as.formula("Survived ~ . -PassengerId -Embarked")
 
-# Start with logistic regression on Sex and Pclass (Embarked lowers AIC)
-# AIC: 834.9
 Logit <- glm (formula1,
               traindata, 
               family=binomial(link='logit'))
@@ -168,12 +168,12 @@ pred_BootstrapForest <- predict(BootstrapForest,
                                 testdata,
                                 type="response")
 
-# # Boosted Trees
-# require(gbm) || {install.packages("gbm"); require(gbm)}
-# source("/Users/getling/Documents/Repositories/GlobalFiles/brt.functions.R")
-# set.seed(100)
-# 
-# # Currently bombing out
+# Boosted Trees
+require(gbm) || {install.packages("gbm"); require(gbm)}
+source("/Users/getling/Documents/Repositories/GlobalFiles/brt.functions.R")
+set.seed(100)
+
+# # Currently predicting 1.61 for all
 # BoostedTree <-
 #   traindata %>%
 #   gbm(formula1,
@@ -189,6 +189,28 @@ pred_BootstrapForest <- predict(BootstrapForest,
 #                             testdata,
 #                             n.tree=100)
 
+# Neural Net - PLACEHOLDER - SKIPPED
+
+# # Elastic Net
+# # Currently predicting nothing
+# require(glmnet) || {install.packages("glmnet"); require(glmnet)}
+# require(useful) || {install.packages("useful"); require(useful)}
+# set.seed(100)
+# 
+# X <- build.x(formula1,
+#              data=traindata,
+#              contrasts=FALSE)
+# Y <- traindata$Survived
+# 
+# ElasticNet <- cv.glmnet(x=X, y=Y, family="binomial", type.measure = "class")
+# 
+# pred_ElasticNet <- predict(ElasticNet,
+#                            build.x(formula1,
+#                                    data=testdata,
+#                                    contrasts=FALSE),
+#                            type = "class",
+#                            s = "lambda.min")
+
 
 ```
 
@@ -200,7 +222,9 @@ pred_BootstrapForest <- predict(BootstrapForest,
 summary(Logit)
 anova(Logit, test="Chisq")
 
+require(partykit) || {install.packages("partykit"); require(partykit)}
 print(DecisionTree)
+detach("package:partykit", unload=TRUE)
 
 importance(BootstrapForest) %>% 
   data.frame() %>% 
@@ -208,7 +232,7 @@ importance(BootstrapForest) %>%
   arrange(desc(MeanDecreaseGini))
 varImpPlot(BootstrapForest,type=2)
 
-summary(BoostedTree)
+#summary(BoostedTree)
 ```
 
 
