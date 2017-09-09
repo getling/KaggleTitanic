@@ -78,22 +78,19 @@ CrossTable(manifest$Survived, manifest$Embarked)
 chisq.test(xtabs(~Survived+Embarked, data=manifest))
 ```
 
+
 ```{r drop}
-# Look for too many missing items (to drop)
-require(VIMGUI) || {install.packages("VIMGUI"); require(VIMGUI)}
-aggr_plot <- aggr(manifest, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(data), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
-detach("package:VIMGUI", unload=TRUE)
-
-# Drop Cabin
+# Drop Cabin and Age (large % missing), Name and Ticket (need cleaning)
 manifest <- manifest %>%
-  select(-Cabin)
-
-# For now, drop Age (20% missing)
-manifest <- manifest %>%
-  select(-Age)
+  select(-Cabin, -Age, -Name, -Ticket)
 ```
 
 ```{r impute}
+# Look for too many missing items (to drop)
+require(VIM) || {install.packages("VIM"); require(VIM)}
+aggr_plot <- aggr(manifest, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(data), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+detach("package:VIM", unload=TRUE)
+
 # Impute missing data
 # First, initialize for ease of modification
 init <- mice(manifest, 
@@ -107,13 +104,13 @@ meth <- init$meth
 meth["Survived"] <- ""
 
 # Re-run imputation, for real this time
-imp <- mice(manifest, 
-            meth = meth, 
-            pred = pred, 
+imp <- mice(manifest,
             m = 5,
+            method = meth, 
+            predictorMatrix = pred, 
             maxit = 50,
             seed = 100,
-            pri = FALSE)
+            printFlag = FALSE)
 
 # SHORTCUT since we have few data points
 # Normally we'd use imputations to pool results for more robustness
@@ -121,7 +118,6 @@ imp <- mice(manifest,
 manifest <- complete(imp, 1)
 
 ```
-
 
 ```{r resplit}
 traindata <- manifest %>% 
@@ -134,13 +130,13 @@ testdata <- manifest %>%
 ```{r models}
 set.seed(100)
 
-formula1 <- as.formula("Survived ~ Sex + Pclass")
+formula1 <- as.formula("Survived ~ . -PassengerId")
 
 # Start with logistic regression on Sex and Pclass (Embarked lowers AIC)
 # AIC: 834.9
-Logit <- glm ( formula1,
-               data = traindata, 
-               family=binomial(link='logit'))
+Logit <- glm (formula1,
+              traindata, 
+              family=binomial(link='logit'))
 
 pred_Logit <- predict(Logit, 
                       testdata,
@@ -151,8 +147,6 @@ require(partykit) || {install.packages("partykit"); require(partykit)}
 
 DecisionTree <- 
   traindata %>% 
-  #select(-PassengerId, ...) %>% 
-  select(Survived, Sex, Pclass) %>%
   ctree(formula1, .)
 
 pred_DecisionTree <- predict(DecisionTree, 
@@ -164,9 +158,7 @@ detach("package:partykit", unload=TRUE)
 require(randomForest) || {install.packages("randomForest"); require(randomForest)}
 
 BootstrapForest <- 
-  traindata %>% 
-  #select(-PassengerId, ...) %>% 
-  select(Survived, Sex, Pclass) %>%
+  traindata %>%
   randomForest(formula1,
                data = .,
                ntree=100,
@@ -176,28 +168,28 @@ pred_BootstrapForest <- predict(BootstrapForest,
                                 testdata,
                                 type="response")
 
-# Boosted Trees
-require(gbm) || {install.packages("gbm"); require(gbm)}
-source("/Users/getling/Documents/Repositories/GlobalFiles/brt.functions.R")
-set.seed(100)
-
-# Currently bombing out
-# BoostedTree <- 
-#   traindata %>% 
-#   #select(-PassengerId, ...) %>% 
-#   select(Survived, Sex, Pclass) %>%
+# # Boosted Trees
+# require(gbm) || {install.packages("gbm"); require(gbm)}
+# source("/Users/getling/Documents/Repositories/GlobalFiles/brt.functions.R")
+# set.seed(100)
+# 
+# # Currently bombing out
+# BoostedTree <-
+#   traindata %>%
 #   gbm(formula1,
-#       data= . , 
-#       #distribution="huberized",
-#       n.trees=100, 
-#       shrinkage=0.1,
+#       data= . ,
+#       distribution="huberized",
+#       n.trees = 100,
+#       shrinkage = 0.1,
 #       n.minobsinnode = 20,
-#       #cv.folds=3, 
-#       n.cores = 2)
+#       cv.folds = 0,
+#       n.cores = 1)
+# 
+# pred_BoostedTree <- predict(BoostedTree,
+#                             testdata,
+#                             n.tree=100)
 
-pred_BoostedTree <- predict(BoostedTree,
-                            testdata,
-                            n.tree=800)
+
 ```
 
 ```{r diags}
@@ -221,13 +213,13 @@ summary(BoostedTree)
 
 
 ```{r export_results}
-# Which model wins?
-pred_winner <- pred_Logit
-pred_winner <- pred_BoostedTree
+# Which model wins? Logit was good with a couple vars, Bootstrap Forest now leads
+#pred_winner <- pred_Logit
+pred_winner <- pred_BootstrapForest
 
 # Save the solution to a dataframe with two columns: PassengerId and Survived (prediction)
-solution <- data.frame(PassengerID = testdata$PassengerId, Survived = ifelse(pred_winner > 0.5,1,0))
-#solution <- data.frame(PassengerID = testdata$PassengerId, Survived = pred_winner)
+#solution <- data.frame(PassengerID = testdata$PassengerId, Survived = ifelse(pred_winner > 0.5,1,0))
+solution <- data.frame(PassengerID = testdata$PassengerId, Survived = pred_winner)
 
 # Write the solution to file
 write.csv(solution, file = 'data/ge_solution.csv', row.names = F)
