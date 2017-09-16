@@ -131,7 +131,6 @@ set.seed(100)
 formula1 <- as.formula("Survived ~ . -PassengerId -Embarked")
 ```
 
-Following tutorial for now 
 ```{r caretpartition}
 # Create a 75% training partition of our known data
 inTrain <- createDataPartition(y = traindata$Survived,
@@ -145,6 +144,47 @@ inTrain <- createDataPartition(y = traindata$Survived,
 carettrain <- traindata[inTrain,]
 carettest <- traindata[-inTrain,]
 ```
+
+```{r ensemblecontrol}
+# Set up k-fold cv
+ensctrl <- trainControl(method = "repeatedcv",
+                        number = 10,
+                        repeats = 3,
+                        savePredictions="final",
+                        classProbs = TRUE,
+                        summaryFunction = twoClassSummary)
+```
+
+```{r runensembles}
+# Load caretEnsemble package
+require(caretEnsemble) || {install.packages("caretEnsemble"); require(caretEnsemble)}
+
+# Create model list
+model_list <- caretList(
+  formula1, 
+  data = carettrain,
+  trControl = ensctrl,
+  methodList = c("gbm", "rf", "nnet"))
+  
+# Run GLM ensemble
+glm_ensemble <- caretStack(
+  model_list,
+  method = "glm",
+  metric = "ROC",
+  trControl = ensctrl)
+
+# Check accuracy
+ensembleClasses <- predict(glm_ensemble, 
+                      newdata = carettest)
+# TODO - fix colAUC
+CF <- coef(glm_ensemble$ens_model$finalModel)[-1]
+#colAUC(pred_ensemble, carettest$Survived)
+CF/sum(CF)
+
+# Create predictions
+pred_ensemble <- predict(glm_ensemble, testdata)
+```
+
 
 ```{r caretcontrol}
 # Set up k-fold cv
