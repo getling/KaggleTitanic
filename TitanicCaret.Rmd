@@ -1,0 +1,158 @@
+---
+title: "Titanic caret data analysis"
+author: "Greg Etling"
+date: "09/16/2017"
+output: html_notebook
+---
+
+```{r setup, include = FALSE}
+# Knitr defaults
+knitr::opts_chunk$set(echo = FALSE,
+                      fig.align = 'center', 
+                      autodep = TRUE,
+                      cache = TRUE)
+
+# Install Packages
+#require(ggbiplot) || {install_github("vqv/ggbiplot"); require(ggbiplot)}
+require(tidyverse) || {install.packages("tidyverse"); require(tidyverse)}
+#require(ggthemes) || {install.packages("ggthemes"); require(ggthemes)}
+#require(RColorBrewer) || {install.packages("RColorBrewer"); require(RColorBrewer)}
+#require(gmodels) || {install.packages("gmodels"); require(gmodels)}
+require(mice) || {install.packages("mice"); require(mice)}
+
+# Scientific notation defaults
+options(scipen=1,digits=2)
+
+# Set base theme
+theme_set(theme_minimal())
+```
+# Load data
+```{r data_load}
+testdata <- read_csv("data/test.csv",
+                     col_types = cols(
+                       PassengerId = col_integer(),
+                       Pclass = col_factor(levels = NULL),
+                       Name = col_character(),
+                       Sex = col_factor(levels = NULL),
+                       Age = col_double(),
+                       SibSp = col_integer(),
+                       Parch = col_integer(),
+                       Ticket = col_character(),
+                       Fare = col_double(),
+                       Cabin = col_character(),
+                       Embarked = col_factor(levels = NULL)))
+traindata <- read_csv("data/train.csv",
+                     col_types = cols(
+                       PassengerId = col_integer(),
+                       Survived = col_factor(levels = NULL),
+                       Pclass = col_factor(levels = NULL),
+                       Name = col_character(),
+                       Sex = col_factor(levels = NULL),
+                       Age = col_double(),
+                       SibSp = col_integer(),
+                       Parch = col_integer(),
+                       Ticket = col_character(),
+                       Fare = col_double(),
+                       Cabin = col_character(),
+                       Embarked = col_factor(levels = NULL)))
+
+manifest <- traindata %>%
+  bind_rows(testdata)
+```
+
+```{r drop}
+# Drop Cabin and Age (large % missing), Name and Ticket (need cleaning)
+manifest <- manifest %>%
+  select(-Cabin, -Age, -Name, -Ticket)
+```
+
+```{r impute}
+# Look for too many missing items (to drop)
+require(VIM) || {install.packages("VIM"); require(VIM)}
+aggr_plot <- aggr(manifest, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(data), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+detach("package:VIM", unload=TRUE)
+
+# Impute missing data
+# First, initialize for ease of modification
+init <- mice(manifest, 
+             maxit = 0, 
+             seed = 100, 
+             pri = FALSE)
+# Next remove Survived from both imputation (meth) and use as predictor (pred)
+pred <- init$pred
+pred[, "Survived"] <- 0
+meth <- init$meth
+meth["Survived"] <- ""
+
+# Re-run imputation, for real this time
+imp <- mice(manifest,
+            m = 5,
+            method = meth, 
+            predictorMatrix = pred, 
+            maxit = 50,
+            seed = 100,
+            printFlag = FALSE)
+
+# SHORTCUT since we have few data points
+# Normally we'd use imputations to pool results for more robustness
+# Write the first imputation back to the data frame
+mice_manifest <- complete(imp, 1)
+manifest$Fare <- mice_manifest$Fare
+manifest$Embarked <- mice_manifest$Embarked
+```
+
+```{r resplit}
+traindata <- manifest %>% 
+  filter(PassengerId < 892)
+
+testdata <- manifest %>% 
+  filter(PassengerId > 891) %>%
+  select(-Survived)
+```
+
+```{r caret}
+# Set up dual core support on OSX
+require(doMC) || {install.packages("doMC"); require(doMC)}
+registerDoMC(cores = 2)
+
+# Load caret package
+require(caret) || {install.packages("caret", 
+                                    dependencies = c("Depends", 
+                                                     "Suggests")); require(caret)}
+# Set up seed and formula
+set.seed(100)
+formula1 <- as.formula("Survived ~ . -PassengerId -Embarked")
+
+# Following tutorial for now on creating basic validation
+inTrain <- createDataPartition(y = traindata$Survived,
+                               ## the outcome data are needed
+                               p = .75,
+                               ## The percentage of data in the
+                               ## training set
+                               list = FALSE)
+
+carettrain <- traindata[inTrain,]
+carettest <- traindata[-inTrain,]
+# End validation set creation
+
+# Initial fit, accuracy 0.7872
+plsFit <- train(formula1,
+                data = carettrain,
+                method = "pls",
+                ## Center and scale the predictors for the training
+                ## set and all future samples.
+                preProc = c("center", "scale"))
+
+```
+
+
+```{r export_results}
+pred_winner <- pred_BootstrapForest
+
+# Save the solution to a dataframe with two columns: PassengerId and Survived (prediction)
+#solution <- data.frame(PassengerID = testdata$PassengerId, Survived = ifelse(pred_winner > 0.5,1,0))
+solution <- data.frame(PassengerID = testdata$PassengerId, Survived = pred_winner)
+
+# Write the solution to file
+write.csv(solution, file = 'data/ge_solution.csv', row.names = F)
+```
