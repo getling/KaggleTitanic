@@ -164,7 +164,8 @@ model_list <- caretList(
   formula1, 
   data = carettrain,
   trControl = ensctrl,
-  methodList = c("gbm", "rf", "nnet"))
+  methodList = c("gbm", "rf", "nnet"),
+  preProc = c("center", "scale"))
   
 # Run GLM ensemble
 glm_ensemble <- caretStack(
@@ -193,6 +194,28 @@ ctrl <- trainControl(method = "repeatedcv",
                      repeats = 10,
                      classProbs = TRUE,
                      summaryFunction = twoClassSummary)
+```
+
+```{r}
+naive_bayesFit <- train(formula1,
+                data = carettrain,
+                method = "naive_bayes",
+                tuneLength = 10,
+                trControl = ctrl,
+                metric = "ROC")
+
+naive_bayesFit
+plot(naive_bayesFit)
+
+# Check accuracy
+naive_bayesClasses <- predict(naive_bayesFit, 
+                      newdata = carettest)
+
+confusionMatrix(data = naive_bayesClasses, 
+                carettest$Survived)
+
+# Create predictions
+pred_naive_bayes <- predict(naive_bayesFit, testdata)
 ```
 
 ```{r gbm}
@@ -245,7 +268,7 @@ pred_rf <- predict(rfFit, testdata)
 ```
 
 ```{r export_results}
-pred_winner <- pred_rf
+pred_winner <- pred_ensemble
 
 # Save the solution to a dataframe with two columns: PassengerId and Survived (prediction)
 #solution <- data.frame(PassengerID = testdata$PassengerId, Survived = ifelse(pred_winner > 0.5,1,0))
