@@ -67,10 +67,27 @@ manifest <- traindata %>%
   bind_rows(testdata)
 ```
 
+```{r feature_engineer}
+# Split out surname and Title from Name field, and drop the rest
+manifest <- manifest %>% 
+  separate(Name, 
+           into = c('Surname',
+                    'RestOfName'), 
+           sep = ', ') %>% 
+  separate(RestOfName, 
+           into = c('Title',
+                    'RestOfName'), 
+           sep = '\\. ', 
+           extra = 'merge') %>%
+  mutate(Title = factor(Title)) %>%
+  select(-RestOfName)
+
+```
+
 ```{r drop}
-# Drop Cabin and Age (large % missing), Name and Ticket (need cleaning)
+# Drop Cabin and Age (large % missing), and Ticket (need cleaning)
 manifest <- manifest %>%
-  select(-Cabin, -Age, -Name, -Ticket)
+  select(-Cabin, -Age, -Ticket)
 ```
 
 ```{r impute}
@@ -106,6 +123,7 @@ imp <- mice(manifest,
 mice_manifest <- complete(imp, 1)
 manifest$Fare <- mice_manifest$Fare
 manifest$Embarked <- mice_manifest$Embarked
+#manifest$Age <- mice_manifest$Age
 ```
 
 ```{r resplit}
@@ -165,7 +183,7 @@ model_list <- caretList(
   data = carettrain,
   trControl = ensctrl,
   methodList = c("gbm", "rf", "nnet"),
-  preProc = c("center", "scale"))
+  preProc = c("center", "scale", "BoxCox"))
   
 # Run GLM ensemble
 glm_ensemble <- caretStack(
@@ -191,31 +209,34 @@ pred_ensemble <- predict(glm_ensemble, testdata)
 # Set up k-fold cv
 ctrl <- trainControl(method = "repeatedcv",
                      number = 10,
-                     repeats = 10,
+                     repeats = 3,
                      classProbs = TRUE,
                      summaryFunction = twoClassSummary)
 ```
 
 ```{r}
-naive_bayesFit <- train(formula1,
-                data = carettrain,
-                method = "naive_bayes",
-                tuneLength = 10,
-                trControl = ctrl,
-                metric = "ROC")
-
-naive_bayesFit
-plot(naive_bayesFit)
-
-# Check accuracy
-naive_bayesClasses <- predict(naive_bayesFit, 
-                      newdata = carettest)
-
-confusionMatrix(data = naive_bayesClasses, 
-                carettest$Survived)
-
-# Create predictions
-pred_naive_bayes <- predict(naive_bayesFit, testdata)
+# Naive Bayes
+# CURRENTLY FAILS ON SURNAMES
+#
+# naive_bayesFit <- train(formula1,
+#                 data = carettrain,
+#                 method = "naive_bayes",
+#                 tuneLength = 10,
+#                 trControl = ctrl,
+#                 metric = "ROC")
+# 
+# naive_bayesFit
+# plot(naive_bayesFit)
+# 
+# # Check accuracy
+# naive_bayesClasses <- predict(naive_bayesFit, 
+#                       newdata = carettest)
+# 
+# confusionMatrix(data = naive_bayesClasses, 
+#                 carettest$Survived)
+# 
+# # Create predictions
+# pred_naive_bayes <- predict(naive_bayesFit, testdata)
 ```
 
 ```{r gbm}
@@ -268,7 +289,7 @@ pred_rf <- predict(rfFit, testdata)
 ```
 
 ```{r export_results}
-pred_winner <- pred_ensemble
+pred_winner <- pred_rf
 
 # Save the solution to a dataframe with two columns: PassengerId and Survived (prediction)
 #solution <- data.frame(PassengerID = testdata$PassengerId, Survived = ifelse(pred_winner > 0.5,1,0))

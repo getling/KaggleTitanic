@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = FALSE,
                       cache = TRUE)
 
 # Install Packages
+require(devtools) || {install.packages("devtools"); require(devtools)}
 require(ggbiplot) || {install_github("vqv/ggbiplot"); require(ggbiplot)}
 require(tidyverse) || {install.packages("tidyverse"); require(tidyverse)}
 require(ggthemes) || {install.packages("ggthemes"); require(ggthemes)}
